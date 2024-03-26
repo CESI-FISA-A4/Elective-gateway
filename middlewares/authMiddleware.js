@@ -9,7 +9,7 @@ module.exports = {
             const response = await axios({
                 method: "POST",
                 baseURL: `http://${process.env.AUTH_HOST}:${process.env.AUTH_PORT}/`,
-                url: `api/verify-token/`,
+                url: `api/auth/verify-token/`,
                 headers: { 'Authorization': 'JWT' },
                 params: req.query,
                 data: req.body
@@ -19,7 +19,7 @@ module.exports = {
                 'info',
                 response.status,
                 `AUTH`,
-                fqdn,
+                `${req.method} : ${fqdn}`,
                 `(FROM ${req.originalUrl})`
             );
 
@@ -32,7 +32,7 @@ module.exports = {
                     'error',
                     error.response.status,
                     `AUTH`,
-                    fqdn,
+                    `${req.method} : ${fqdn}`,
                     `error (FROM ${req.originalUrl})`
                 );
                 return res.status(error.response.status).json({ "error": error.response.data });
@@ -41,7 +41,7 @@ module.exports = {
                 'error',
                 500,
                 `AUTH`,
-                fqdn,
+                `${req.method} : ${fqdn}`,
                 `internal error (FROM ${req.originalUrl})`,
             );
             return res.status(500).json({ "error": "internal error" });

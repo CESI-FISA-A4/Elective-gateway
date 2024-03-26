@@ -11,15 +11,13 @@ const serviceConfigs = [{
             { route: "/tests/1" },
             // { methods: [], route: "/tests", roles: [] },
             // { methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTION"], route: "/tests", roles: ["ADMIN", "A", "B"] },
-
-            // { methods: ["GET", "POST"], route: "/test2", roles: ["ADMIN", "A", "B"] },
         ],
     },
     {
-        serviceLabel: "Service B",
-        server: { host: process.env.SRV_B_HOST, port: process.env.SRV_B_PORT },
-        entrypointUrl: "/api/sb",
-        redirectUrl: "/api/b",
+        serviceLabel: "Service Auth",
+        server: { host: process.env.AUTH_HOST, port: process.env.AUTH_PORT },
+        entrypointUrl: "/api/auth",
+        redirectUrl: "/api/auth",
         routeProtections: null,
     }
 ];
@@ -46,7 +44,7 @@ module.exports = {
                         if (!isCorrectRole) return res.status(403).json({ "error": "wrong role" });
                         if (!isUserIdentified) return res.status(403).json({ "error": "user undefined" });
 
-                        module.exports.redirectService(req, res, service);
+                        return module.exports.redirectService(req, res, service);
                     } catch (error) {
                         return res.status(500).json({ "error": "internal error" });
                     }
@@ -56,7 +54,7 @@ module.exports = {
             app.use(service.entrypointUrl, async(req, res) => {
                 try {
                     // console.log(`[MID][${req.method}] ${service.redirectUrl}${req.url}`);
-                    module.exports.redirectService(req, res, service);
+                    return module.exports.redirectService(req, res, service);
                 } catch (error) {
                     return res.status(500).json({ "error": "internal error" });
                 }
@@ -82,19 +80,18 @@ module.exports = {
                 'info',
                 response.status,
                 `REDIRECT ${service.serviceLabel}`,
-                fqdn,
+                `${req.method} : ${fqdn}`,
                 `(FROM ${req.originalUrl})`
             );
 
-            res.writeHead(response.status, response.headers);
-            res.end(JSON.stringify(response.data));
+            return res.status(response.status).send(response.data);
         } catch (error) {
             if (error.response) {
                 logRequest(
                     'error',
                     error.response.status,
                     `REDIRECT ${service.serviceLabel}`,
-                    fqdn,
+                    `${req.method} : ${fqdn}`,
                     `error (FROM ${req.originalUrl})`
                 );
                 return res.status(error.response.status).json({ "error": error.response.data });
@@ -103,7 +100,7 @@ module.exports = {
                 'error',
                 500,
                 `REDIRECT ${service.serviceLabel}`,
-                fqdn,
+                `${req.method} : ${fqdn}`,
                 `internal error (FROM ${req.originalUrl})`
             );
             return res.status(500).json({ "error": "internal error" });
