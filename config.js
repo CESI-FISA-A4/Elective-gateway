@@ -38,7 +38,7 @@ module.exports = {
 
                         let isCorrectMethod = !rule.methods || !rule.methods.length || rule.methods.find((method) => method === req.method);
                         let isCorrectRole = !rule.roles || !rule.roles.length || rule.roles.find((role) => role === req.role);
-                        let isUserIdentified = req.userID != undefined;
+                        let isUserIdentified = req.userID != undefined || req.userID != "undefined";
 
                         if (!isCorrectMethod) return res.status(403).json({ "error": "wrong method" });
                         if (!isCorrectRole) return res.status(403).json({ "error": "wrong role" });

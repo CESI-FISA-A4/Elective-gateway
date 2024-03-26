@@ -10,7 +10,7 @@ module.exports = {
                 method: "POST",
                 baseURL: `http://${process.env.AUTH_HOST}:${process.env.AUTH_PORT}/`,
                 url: `api/auth/verify-token/`,
-                headers: { 'Authorization': 'JWT' },
+                headers: req.headers,
                 params: req.query,
                 data: req.body
             });
@@ -23,7 +23,7 @@ module.exports = {
                 `(FROM ${req.originalUrl})`
             );
 
-            req.userID = response.data["user-id"];
+            req.userID = response.data["userID"];
             req.role = response.data["role"];
             next();
         } catch (error) {
