@@ -3,7 +3,7 @@ const { logRequest } = require('../logger');
 
 module.exports = {
     authMiddleware: async(req, res, next) => {
-        const fqdn = `http://${process.env.AUTH_HOST}:${process.env.AUTH_PORT}/`;
+        const fqdn = `http://${process.env.AUTH_HOST}:${process.env.AUTH_PORT}/api/auth/verify-token/`;
 
         try {
             const response = await axios({
