@@ -23,8 +23,8 @@ module.exports = {
                 `(FROM ${req.originalUrl})`
             );
 
-            req.userID = response.data["userID"];
-            req.role = response.data["role"];
+            req.userId = response.data["userId"];
+            req.roleLabel = response.data["roleLabel"];
             next();
         } catch (error) {
             if (error.response) {
