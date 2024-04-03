@@ -85,7 +85,7 @@ module.exports = {
                     req.url = rule.route + req.url;
 
                     let isCorrectMethod = !rule.methods || !rule.methods.length || rule.methods.find((method) => method === req.method);
-                    let isCorrectRole = !rule.roles || !rule.roles.length || rule.roles.find((role) => role === req.role);
+                    let isCorrectRole = !rule.roles || !rule.roles.length || rule.roles.find((role) => role === req.roleLabel);
                     let isUserIdentified = req.userID != undefined || req.userID != "undefined";
 
                     if (!isCorrectMethod) return res.status(403).json({ "error": "wrong method" });
@@ -94,6 +94,7 @@ module.exports = {
 
                     return module.exports.redirectService(req, res, service);
                 } catch (error) {
+                    console.log(error);
                     return res.status(500).json({ "error": "internal error" });
                 }
             }
@@ -107,6 +108,7 @@ module.exports = {
             try {
                 return module.exports.redirectService(req, res, service);
             } catch (error) {
+                console.log(error);
                 return res.status(500).json({ "error": "internal error" });
             }
         }
