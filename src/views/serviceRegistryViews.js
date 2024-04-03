@@ -5,13 +5,13 @@ module.exports = {
     register: (app, req, res) => {
         const fqdn = `http://${process.env.HOST}:${process.env.PORT}/registry/services`;
         try {
-            const { serviceLabel, host, port, entrypointUrl, redirectUrl } = req.body;
+            const { serviceLabel, host, port, entrypointUrl, redirectUrl, routeProtections } = req.body;
 
             if (!serviceLabel || !host || !port || !entrypointUrl || !redirectUrl) return res.status(401).json({ "error": "serviceLabel, host, port, entrypointUrl, redirectUrl required" });
 
             const server = { host, port };
 
-            const data = { serviceLabel, server, entrypointUrl, redirectUrl };
+            const data = { serviceLabel, server, entrypointUrl, redirectUrl, routeProtections };
 
             const serviceId = addNewService(app, data);
 

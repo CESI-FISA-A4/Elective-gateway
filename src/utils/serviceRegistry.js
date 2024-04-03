@@ -117,14 +117,15 @@ module.exports = {
     },
 
     redirectService: async(req, res, service) => {
-        const fqdn = `http://${service.server.host}:${service.server.port}${service.redirectUrl}${req.url}`;
+        const fqdn = "http://" + `${service.server.host}:${service.server.port}${service.redirectUrl}${req.url}`.replace(/\/\//g, '/');
 
         try {
             const response = await axios({
                 method: req.method,
-                baseURL: `http://${service.server.host}:${service.server.port}`,
-                url: `${service.redirectUrl}${req.url}`,
-                data: {...req.body, userID: req.userID, role: req.role }
+                baseURL: "http://" + `${service.server.host}:${service.server.port}`.replace(/\/\//g, '/'),
+                url: `${service.redirectUrl}${req.url}`.replace(/\/\//g, '/'),
+                data: {...req.body },
+                params: { userId: req.userId, roleLabel: req.roleLabel }
             });
 
             let isCorrect = ["undefined", false, "null"].find((e) => e === req.auth);
