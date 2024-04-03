@@ -3,7 +3,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 var cors = require('cors');
 
-const { applyServerConfig } = require('./config');
+const { applyAllServerConfig } = require('./src/utils/serviceRegistry');
 
 const app = express();
 
@@ -14,7 +14,9 @@ app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 app.use(express.json());
 /**----------------------------------------------------------------------------------------------------- */
 
-applyServerConfig(app);
+require('./src/routes/serviceRegistry.routes')(app);
+
+// applyAllServerConfig(app);
 
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST;
