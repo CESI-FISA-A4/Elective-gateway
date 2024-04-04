@@ -11,15 +11,13 @@ module.exports = {
                 baseURL: `http://${process.env.AUTH_HOST}:${process.env.AUTH_PORT}/`,
                 url: `api/auth/verify-token/`,
                 headers: req.headers,
-                params: req.query,
-                data: req.body
             });
 
             logRequest(
                 'info',
                 response.status,
                 `AUTH`,
-                `${req.method} : ${fqdn}`,
+                `POST : ${fqdn}`,
                 `(FROM ${req.originalUrl})`
             );
 
@@ -32,7 +30,7 @@ module.exports = {
                     'error',
                     error.response.status,
                     `AUTH`,
-                    `${req.method} : ${fqdn}`,
+                    `POST : ${fqdn}`,
                     `error (FROM ${req.originalUrl})`
                 );
                 return res.status(error.response.status).json({ "error": error.response.data });
@@ -41,7 +39,7 @@ module.exports = {
                 'error',
                 500,
                 `AUTH`,
-                `${req.method} : ${fqdn}`,
+                `POST : ${fqdn}`,
                 `internal error (FROM ${req.originalUrl})`,
             );
             return res.status(500).json({ "error": "internal error" });

@@ -79,16 +79,21 @@ module.exports = {
         service.routeProtections && service.routeProtections.forEach(rule => {
             console.log(`[RULE URL] ${service.entrypointUrl}${rule.route}`);
 
-            const protectedMiddleware = async(req, res) => {
+            const protectedMiddleware = async(req, res, next) => {
                 try {
                     //Reset de l'url pour faciliter les redirections
                     req.url = rule.route + req.url;
 
                     let isCorrectMethod = !rule.methods || !rule.methods.length || rule.methods.find((method) => method === req.method);
+
+                    if (!isCorrectMethod) {
+                        next();
+                        return;
+                    }
+
                     let isCorrectRole = !rule.roles || !rule.roles.length || rule.roles.find((role) => role === req.roleLabel);
                     let isUserIdentified = req.userID != undefined || req.userID != "undefined";
 
-                    if (!isCorrectMethod) return res.status(403).json({ "error": "wrong method" });
                     if (!isCorrectRole) return res.status(403).json({ "error": "wrong role" });
                     if (!isUserIdentified) return res.status(403).json({ "error": "user undefined" });
 
@@ -119,13 +124,13 @@ module.exports = {
     },
 
     redirectService: async(req, res, service) => {
-        const fqdn = "http://" + `${service.server.host}:${service.server.port}${service.redirectUrl}${req.url}`.replace(/\/\//g, '/');
+        const fqdn = "http://" + `${service.server.host}:${service.server.port}${req.originalUrl}`.replace(/\/\//g, '/').replace(service.entrypointUrl, service.redirectUrl);
 
         try {
             const response = await axios({
                 method: req.method,
                 baseURL: "http://" + `${service.server.host}:${service.server.port}`.replace(/\/\//g, '/'),
-                url: `${service.redirectUrl}${req.url}`.replace(/\/\//g, '/'),
+                url: `${req.originalUrl}`.replace(/\/\//g, '/').replace(service.entrypointUrl, service.redirectUrl),
                 data: {...req.body },
                 params: { userId: req.userId, roleLabel: req.roleLabel }
             });
@@ -167,3 +172,4 @@ module.exports = {
 
 
 // TODO AJOUT D'UN MODE RESTRICT !!
+// AJOUTER LA RULES EXACT URL
