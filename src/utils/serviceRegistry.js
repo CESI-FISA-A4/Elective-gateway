@@ -2,50 +2,14 @@ const { logRequest } = require("../logger");
 const { authMiddleware } = require("../middlewares/authMiddleware");
 const axios = require('axios');
 
+
 let currentServiceIdentifier = 10; // Start from 10 to allow 10 manual creation
 
-// const serviceConfigs = [{
-//         identifier: 1,
-//         serviceLabel: "Service A",
-//         server: { host: process.env.SRV_A_HOST, port: process.env.SRV_A_PORT },
-//         entrypointUrl: "/api/sa",
-//         redirectUrl: "/api/a",
-//         routeProtections: [
-//             { route: "/tests/1" },
-//             // { methods: [], route: "/tests", roles: [] },
-//             // { methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTION"], route: "/tests", roles: ["ADMIN", "A", "B"] },
-//         ],
-//     },
-//     // {
-//     //     identifier: 2,
-//     //     serviceLabel: "Service Auth",
-//     //     server: { host: process.env.AUTH_HOST, port: process.env.AUTH_PORT },
-//     //     entrypointUrl: "/api/auth",
-//     //     redirectUrl: "/api/auth",
-//     //     routeProtections: null,
-//     // }
-// ];
 
 // Store the middlewares applied for each services
-const serviceConfigs = {
-    // "1": {
-    //     serviceLabel: "Service A",
-    //     server: { host: process.env.SRV_A_HOST, port: process.env.SRV_A_PORT },
-    //     entrypointUrl: "/api/sa",
-    //     redirectUrl: "/api/a",
-    //     routeProtections: [
-    //         // { methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTION"], route: "/tests", roles: ["ADMIN", "A", "B"] },
-    //     ],
-    // }
-};
+const serviceConfigs = {};
 
 module.exports = {
-    // applyAllServerConfig: (app) => {
-    //     serviceConfigs.forEach(service => {
-    //         module.exports.applyServerConfig(app, service);
-    //     });
-    // },
-
     addNewService(app, service) {
         currentServiceIdentifier++;
 
@@ -55,42 +19,41 @@ module.exports = {
     },
 
     removeServiceByIdentifier(app, identifier) {
-        let middlewares = serviceConfigs[identifier.toString()];
+        let isDataDeleted = false;
 
-        if (!middlewares || !middlewares.length) return false;
+        let routes = serviceConfigs[identifier.toString()].routes;
+        let defaultMiddleware = serviceConfigs[identifier.toString()].defaultMiddleware;
 
-        middlewares.forEach(middleware => {
+        if (routes.length || defaultMiddleware) isDataDeleted = true;
+
+        app._router.stack.forEach((layer, index, stack) => {
+            if (layer.handle === defaultMiddleware) {
+                stack.splice(index, 1);
+            }
+        });
+
+        routes.forEach(route => {
             app._router.stack.forEach((layer, index, stack) => {
-                if (layer.handle === middleware) {
+                if (layer.route && layer.route.path === route) {
                     stack.splice(index, 1);
                 }
             });
         });
 
-        serviceConfigs[identifier.toString()] = [];
+        serviceConfigs[identifier.toString()] = { routes: [], defaultMiddleware: null };
 
-        return true;
+        return isDataDeleted;
     },
 
     applyServerConfig: (app, service, identifier) => {
         const key = identifier.toString();
-        serviceConfigs[key] = [];
+        serviceConfigs[key] = { routes: [], defaultMiddleware: null };
 
         service.routeProtections && service.routeProtections.forEach(rule => {
             console.log(`[RULE URL] ${service.entrypointUrl}${rule.route}`);
 
-            const protectedMiddleware = async(req, res, next) => {
+            const protectedMiddleware = async(req, res) => {
                 try {
-                    //Reset de l'url pour faciliter les redirections
-                    req.url = rule.route + req.url;
-
-                    let isCorrectMethod = !rule.methods || !rule.methods.length || rule.methods.find((method) => method === req.method);
-
-                    if (!isCorrectMethod) {
-                        next();
-                        return;
-                    }
-
                     let isCorrectRole = !rule.roles || !rule.roles.length || rule.roles.find((role) => role === req.roleLabel);
                     let isUserIdentified = req.userID != undefined || req.userID != "undefined";
 
@@ -104,12 +67,22 @@ module.exports = {
                 }
             }
 
-            app.use(`${service.entrypointUrl}${rule.route}`, authMiddleware, protectedMiddleware);
+            let methods = rule.methods;
+            let allMethods = ["get", "post", "patch", "put", "delete"];
 
-            serviceConfigs[key].push(protectedMiddleware);
+            if (!rule.methods || !rule.methods.length) methods = allMethods;
+
+            let endpointUrl = `${service.entrypointUrl}${rule.route}`;
+
+            methods.forEach(method => {
+                console.log(`app.${method.toLowerCase()}('${service.entrypointUrl}${rule.route}', authMiddleware, protectedMiddleware)`);
+                app[method.toLowerCase()](endpointUrl, authMiddleware, protectedMiddleware);
+            });
+
+            serviceConfigs[key].routes.push(endpointUrl);
         });
 
-        const simpleMiddleware = async(req, res) => {
+        const defaultMiddleware = async(req, res) => {
             try {
                 return module.exports.redirectService(req, res, service);
             } catch (error) {
@@ -118,14 +91,13 @@ module.exports = {
             }
         }
 
-        app.use(service.entrypointUrl, simpleMiddleware);
+        app.use(service.entrypointUrl, defaultMiddleware);
 
-        serviceConfigs[key].push(simpleMiddleware);
+        serviceConfigs[key].defaultMiddleware = defaultMiddleware;
     },
 
     redirectService: async(req, res, service) => {
         const fqdn = "http://" + `${service.server.host}:${service.server.port}${req.originalUrl}`.replace(/\/\//g, '/').replace(service.entrypointUrl, service.redirectUrl);
-
         try {
             const response = await axios({
                 method: req.method,
@@ -172,4 +144,3 @@ module.exports = {
 
 
 // TODO AJOUT D'UN MODE RESTRICT !!
-// AJOUTER LA RULES EXACT URL

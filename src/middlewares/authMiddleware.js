@@ -3,6 +3,8 @@ const { logRequest } = require('../logger');
 
 module.exports = {
     authMiddleware: async(req, res, next) => {
+        let token = req.headers.authorization || req.headers.Authorization;
+
         const fqdn = `http://${process.env.AUTH_HOST}:${process.env.AUTH_PORT}/api/auth/verify-token/`;
 
         try {
@@ -10,7 +12,7 @@ module.exports = {
                 method: "POST",
                 baseURL: `http://${process.env.AUTH_HOST}:${process.env.AUTH_PORT}/`,
                 url: `api/auth/verify-token/`,
-                headers: req.headers,
+                headers: { "Authorization": token },
             });
 
             logRequest(
