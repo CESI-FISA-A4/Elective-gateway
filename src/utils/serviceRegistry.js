@@ -2,51 +2,51 @@ const { logRequest } = require("../logger");
 const { authMiddleware } = require("../middlewares/authMiddleware");
 const axios = require('axios');
 
-
-let currentServiceIdentifier = 10; // Start from 10 to allow 10 manual creation
-
-
 // Store the middlewares applied for each services
 const serviceConfigs = {};
 
 module.exports = {
     addNewService(app, service) {
-        currentServiceIdentifier++;
-
-        module.exports.applyServerConfig(app, service, currentServiceIdentifier);
-
-        return currentServiceIdentifier;
+        module.exports.applyServerConfig(app, service);
     },
 
     removeServiceByIdentifier(app, identifier) {
         let isDataDeleted = false;
 
-        let routes = serviceConfigs[identifier.toString()].routes;
-        let defaultMiddleware = serviceConfigs[identifier.toString()].defaultMiddleware;
-
-        if (routes.length || defaultMiddleware) isDataDeleted = true;
-
-        app._router.stack.forEach((layer, index, stack) => {
-            if (layer.handle === defaultMiddleware) {
-                stack.splice(index, 1);
-            }
-        });
-
-        routes.forEach(route => {
+        if(serviceConfigs.hasOwnProperty(identifier)){
+            let routes = serviceConfigs[identifier].routes;
+            let defaultMiddleware = serviceConfigs[identifier].defaultMiddleware;
+    
+            if (routes.length || defaultMiddleware) isDataDeleted = true;
+    
             app._router.stack.forEach((layer, index, stack) => {
-                if (layer.route && layer.route.path === route) {
+                if (layer.handle === defaultMiddleware) {
                     stack.splice(index, 1);
                 }
             });
-        });
-
-        serviceConfigs[identifier.toString()] = { routes: [], defaultMiddleware: null };
+    
+            routes.forEach(route => {
+                app._router.stack.forEach((layer, index, stack) => {
+                    if (layer.route && layer.route.path === route) {
+                        stack.splice(index, 1);
+                    }
+                });
+            });
+    
+            serviceConfigs[identifier] = { routes: [], defaultMiddleware: null };
+        }
 
         return isDataDeleted;
     },
 
-    applyServerConfig: (app, service, identifier) => {
-        const key = identifier.toString();
+    applyServerConfig: (app, service) => {
+        const key = service.serviceIdentifier;
+
+        // Remove the previous config 
+        if(serviceConfigs.hasOwnProperty(key)){
+            module.exports.removeServiceByIdentifier(app, key);
+        }
+
         serviceConfigs[key] = { routes: [], defaultMiddleware: null };
 
         service.routeProtections && service.routeProtections.forEach(rule => {

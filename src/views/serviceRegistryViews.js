@@ -5,24 +5,24 @@ module.exports = {
     register: (app, req, res) => {
         const fqdn = `http://${process.env.HOST}:${process.env.PORT}/registry/services`;
         try {
-            const { serviceLabel, host, port, entrypointUrl, redirectUrl, routeProtections, exactUrl } = req.body;
+            const { serviceIdentifier, serviceLabel, host, port, entrypointUrl, redirectUrl, routeProtections } = req.body;
 
-            if (!serviceLabel || !host || !port || !entrypointUrl || !redirectUrl) return res.status(401).json({ "error": "serviceLabel, host, port, entrypointUrl, redirectUrl required" });
+            if (!serviceIdentifier || !serviceLabel || !host || !port || !entrypointUrl || !redirectUrl) return res.status(401).json({ "error": "serviceIdentifier, serviceLabel, host, port, entrypointUrl, redirectUrl required" });
 
             const server = { host, port };
 
-            const data = { serviceLabel, server, entrypointUrl, redirectUrl, routeProtections };
+            const data = { serviceIdentifier, serviceLabel, server, entrypointUrl, redirectUrl, routeProtections };
 
-            const serviceId = addNewService(app, data);
+            addNewService(app, data);
 
             logRequest(
                 'info',
                 201,
                 `REGISTRY`,
                 `${req.method} : ${fqdn}`,
-                `service implemented (FROM ${req.originalUrl})`
+                `service '${serviceLabel}' implemented (FROM ${req.originalUrl})`
             );
-            return res.status(201).json({ "success": "service implemented", "serviceId": serviceId });
+            return res.status(201).json({ "success": "service implemented", "serviceId": serviceIdentifier });
         } catch (error) {
             console.log(error);
             logRequest(
@@ -44,11 +44,11 @@ module.exports = {
     // }
 
     delete: (app, req, res) => {
-        const fqdn = `http://${process.env.HOST}:${process.env.PORT}/registry/services/${req.params.id}`;
+        const fqdn = `http://${process.env.HOST}:${process.env.PORT}/registry/services/${req.params.identifier}`;
         try {
-            const id = req.params.id;
+            const identifier = req.params.identifier;
 
-            let response = removeServiceByIdentifier(app, id);
+            let response = removeServiceByIdentifier(app, identifier);
 
             if (!response) {
                 logRequest(
@@ -58,7 +58,7 @@ module.exports = {
                     `${req.method} : ${fqdn}`,
                     `service empty (FROM ${req.originalUrl})`
                 );
-                return res.status(200).json({ "message": `service ${id} empty` });
+                return res.status(200).json({ "message": `service ${identifier} empty` });
             }
 
             logRequest(
@@ -68,7 +68,7 @@ module.exports = {
                 `${req.method} : ${fqdn}`,
                 `service implemented (FROM ${req.originalUrl})`
             );
-            return res.status(200).json({ "message": `service ${id} successfully deleted` });
+            return res.status(200).json({ "message": `service ${identifier} successfully deleted` });
         } catch (error) {
             console.log(error);
             logRequest(
